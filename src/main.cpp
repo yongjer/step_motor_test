@@ -81,51 +81,32 @@ void loop() {
 #include <AccelStepper.h>
 
 // Define pin connections
-const int cwPin = 2;   // Clockwise rotation pin
-const int ccwPin = 3;  // Counter-clockwise rotation pin
+const int pin1 = 10;
+const int pin2 = 11;
+const int pin3 = 12;
+const int pin4 = 13;
 
-// Define motor interface type
-#define MOTOR_INTERFACE_TYPE 2
+// Define the AccelStepper interface type; 4 wire motor in half step mode:
+#define MotorInterfaceType 8
 
-// Create a new instance of the AccelStepper class
-AccelStepper stepper = AccelStepper(MOTOR_INTERFACE_TYPE, cwPin, ccwPin);
-
-// Define motor speeds
-const long MOTOR_SPEED = 500000;  // Steps per second when running
-const int STOP_SPEED = 0;        // Speed when stopped
+// Initialize with pin sequence IN1-IN3-IN2-IN4 for using the AccelStepper library with 28BYJ-48 stepper motor
+AccelStepper stepper = AccelStepper(MotorInterfaceType, pin1, pin3, pin2, pin4);
 
 void setup() {
-  // Initialize serial communication
-  Serial.begin(9600);
-  stepper.setMaxSpeed(1000000);  // 設定馬達的最大速度
-  stepper.setAcceleration(50000);  // 設定馬達的加速度
+  // Set the maximum speed and acceleration:
+  stepper.setMaxSpeed(1000);
+  stepper.setAcceleration(500);
+  
+  // Set the initial target position:
+  stepper.moveTo(2048); // This is approximately one full rotation for 28BYJ-48
 }
 
 void loop() {
-  if (Serial.available() > 0) {
-    String command = Serial.readStringUntil('\n');
-    command.trim();
-    
-    if (command == "cw") {
-      // Rotate clockwise for 5 seconds
-      stepper.setSpeed(MOTOR_SPEED);
-      unsigned long startTime = millis();
-      while (millis() - startTime < 5000) {
-        stepper.runSpeed();
-      }
-      stepper.setSpeed(STOP_SPEED);
-    }
-    else if (command == "ccw") {
-      // Rotate counter-clockwise for 5 seconds
-      stepper.setSpeed(-MOTOR_SPEED);
-      unsigned long startTime = millis();
-      while (millis() - startTime < 5000) {
-        stepper.runSpeed();
-      }
-      stepper.setSpeed(STOP_SPEED);
-    }
+  // If at the end of travel go to the other end
+  if (stepper.distanceToGo() == 0) {
+    stepper.moveTo(-stepper.currentPosition());
   }
   
-  // Always call run() in the main loop
-  stepper.runSpeed();
+  // Move the motor one step
+  stepper.run();
 }
